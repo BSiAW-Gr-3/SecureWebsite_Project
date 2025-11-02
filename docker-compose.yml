@@ -1,0 +1,64 @@
+services:
+  dynamodb-local:
+    image: amazon/dynamodb-local:latest
+    container_name: dynamodb-local
+    command: "-jar DynamoDBLocal.jar -inMemory -sharedDb"
+    working_dir: /home/dynamodblocal
+    ports:
+      - "9999:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000 || exit 0"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  localstack:
+    container_name: localstack
+    image: localstack/localstack:latest
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=logs
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -f http://localhost:4566/_localstack/health || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    container_name: python
+    build: ./Backend/
+    restart: always
+    environment:
+      AWS_REGION: "DUMMYREGION"
+      AWS_ACCESS_KEY_ID: "DUMMYKEY"
+      AWS_SECRET_ACCESS_KEY: "DUMMYSECRET"
+      SECRET_KEY: "a03143b0f89ae6552dd24a678729f3b70354b46e76a1599ef1f308e095da1069"
+      DYNAMODB_ENDPOINT_URL: "http://dynamodb-local:8000"
+      USERS_TABLE: "forum_users"
+      CLOUDWATCH_ENDPOINT_URL: "http://localstack:4566"
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+    ports:
+      - 80:8000
+    volumes:
+      - ./Backend:/app
+    depends_on:
+      dynamodb-local:
+        condition: service_healthy
+
+  frontend:
+    container_name: frontend
+    build:
+      context: ./Frontend/
+      args:
+        VITE_API_URL: http://localhost
+    restart: always
+    ports:
+      - 8080:8080
+    depends_on:
+      - api

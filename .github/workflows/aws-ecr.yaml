@@ -1,0 +1,273 @@
+name: Deploy to Amazon ECR
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  AWS_REGION: "eu-north-1"
+  ECR_FRONTEND_REPOSITORY: rybmw/front
+  ECR_BACKEND_REPOSITORY: rybmw/api
+  TAG: latest
+
+permissions:
+  contents: read
+  security-events: write 
+
+jobs:
+  filter_changes:
+    runs-on: ubuntu-latest
+    name: Detect Code Changes
+    outputs:
+      frontend_changed: ${{ steps.filter.outputs.frontend }}
+      backend_changed: ${{ steps.filter.outputs.backend }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check for file changes in Frontend and Backend
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            frontend:
+              - 'Frontend/**'
+            backend:
+              - 'Backend/**'
+
+  codeql_analysis:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    needs: filter_changes 
+    permissions:
+      contents: read
+      security-events: write 
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2 
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4 
+        with:
+          languages: python, javascript
+          queries: security-extended
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v4 
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4 
+
+  check_frontend_container:
+    name: Check Frontend Container
+    runs-on: ubuntu-latest
+    environment: production
+    needs: [filter_changes, codeql_analysis]
+    if: needs.filter_changes.outputs.frontend_changed == 'true'
+    permissions:
+      id-token: write 
+      contents: read
+      security-events: write 
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        
+      - name: Build Frontend Image for SAST Scan
+        id: build_sast_frontend
+        run: |
+          docker build -t frontend-sast ./Frontend/
+
+      - name: Run Trivy vulnerability scan on Frontend Image
+        id: trivy_frontend_scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'frontend-sast'
+          format: 'sarif'
+          output: 'trivy-frontend-results.sarif'
+          severity: 'CRITICAL,HIGH' 
+          exit-code: '0'
+          
+      - name: Upload Trivy frontend scan results to GitHub Security tab
+        if: ${{ always() }} 
+        uses: github/codeql-action/upload-sarif@v4 
+        with:
+          sarif_file: 'trivy-frontend-results.sarif'
+
+  check_backend_container:
+    name: Check Backend Container
+    runs-on: ubuntu-latest
+    environment: production
+    needs: [filter_changes, codeql_analysis]
+    if: needs.filter_changes.outputs.backend_changed == 'true'
+    permissions:
+      id-token: write 
+      contents: read
+      security-events: write 
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Build Backend Image for SAST
+        id: build_sast
+        run: |
+          docker build -t backend-sast ./Backend/
+
+      - name: Run Trivy vulnerability scan on Backend Image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'backend-sast'
+          format: 'sarif' 
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH' 
+          exit-code: '0'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        if: ${{ always() }} 
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  dast_scan:
+    name: Dynamic Application Security Test (DAST)
+    runs-on: ubuntu-latest
+    needs: [filter_changes, codeql_analysis]
+    if: needs.filter_changes.outputs.frontend_changed == 'true' || needs.filter_changes.outputs.backend_changed == 'true'
+    permissions:
+      id-token: write 
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Start Application Stack with DynamoDB Local
+        run: |
+          docker compose up --build -d 
+          timeout 60 bash -c 'until curl --silent --fail http://localhost:80/ > /dev/null; do echo -n "."; sleep 3; done'
+          timeout 60 bash -c 'until curl --silent --fail http://localhost:8080/ > /dev/null; do echo -n "."; sleep 3; done'
+
+      - name: Run OWASP ZAP DAST Scan on Backend
+        uses: zaproxy/action-api-scan@v0.10.0
+        with:
+          target: 'http://localhost:80' 
+          allow_issue_writing: false
+          fail_action: false
+          token: ${{ secrets.GITHUB_TOKEN }}
+          cmd_options: '-z "-config rules.rule.10109.maxChildren=1000"'
+          artifact_name: 'zap-backend-scan'
+
+      - name: Run OWASP ZAP DAST Scan on Frontend
+        uses: zaproxy/action-full-scan@v0.12.0
+        with:
+          target: 'http://localhost:8080' 
+          allow_issue_writing: false
+          fail_action: false
+          token: ${{ secrets.GITHUB_TOKEN }}
+          cmd_options: '-z "-config rules.rule.10109.maxChildren=1000"'
+          artifact_name: 'zap-frontend-scan'
+
+  deploy_frontend:
+    name: Build & Push Frontend Image
+    runs-on: ubuntu-latest
+    environment: production
+    needs: [dast_scan, filter_changes, check_frontend_container, codeql_analysis]
+    if: needs.filter_changes.outputs.frontend_changed == 'true' && needs.check_frontend_container.result == 'success' && needs.codeql_analysis.result == 'success'
+    permissions:
+      id-token: write 
+      contents: read
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials & ECR Login
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_CICD_ROLE_ARN }}
+          role-session-name: github-actions-session
+
+      - name: Login to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push Frontend image
+        run: |
+          IMAGE_URL=${{ steps.ecr.outputs.registry }}/$ECR_FRONTEND_REPOSITORY:$TAG
+          
+          cd Frontend
+          docker buildx create --name multi-arch-builder --driver docker-container --use
+          docker buildx build --platform linux/amd64,linux/arm64 -t $IMAGE_URL . --push
+
+  deploy_backend:
+    name: Build & Push Backend Image
+    runs-on: ubuntu-latest
+    environment: production
+    needs: [dast_scan, filter_changes, check_backend_container, codeql_analysis]
+    if: needs.filter_changes.outputs.backend_changed == 'true' && needs.check_backend_container.result == 'success' && needs.codeql_analysis.result == 'success'
+    permissions:
+      id-token: write 
+      contents: read
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials & ECR Login
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_CICD_ROLE_ARN }}
+          role-session-name: github-actions-session
+
+      - name: Login to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push Backend image
+        run: |
+          IMAGE_URL=${{ steps.ecr.outputs.registry }}/$ECR_BACKEND_REPOSITORY:$TAG
+          
+          cd Backend
+          docker buildx create --name multi-arch-builder --driver docker-container --use
+          docker buildx build --platform linux/amd64,linux/arm64 -t $IMAGE_URL . --push
+    
+  check_terraform_iac_security:
+      name: Check Terraform IaC Security
+      runs-on: ubuntu-latest
+      needs: [deploy_frontend, deploy_backend]
+      if: always() 
+      environment: production
+      permissions:
+        id-token: write 
+        contents: read
+        security-events: write 
+      
+      steps:
+        - name: Checkout Code
+          uses: actions/checkout@v4
+            
+        - name: Run Trivy IaC Scan on Terraform Directory
+          id: trivy_iac_scan
+          uses: aquasecurity/trivy-action@master
+          with:
+            scan-type: 'config' 
+            input: 'Terraform/' 
+            format: 'sarif'
+            output: 'trivy-iac-results.sarif'
+            severity: 'CRITICAL,HIGH,MEDIUM,LOW'
+            exit-code: '0' 
+
+        - name: Upload Trivy IaC scan results to GitHub Security tab
+          if: ${{ always() }}
+          uses: github/codeql-action/upload-sarif@v4
+          with:
+            sarif_file: 'trivy-iac-results.sarif'

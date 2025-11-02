@@ -1,0 +1,537 @@
+/* Global styles and variables */
+:root {
+  --primary-color: #2c3e50;
+  --secondary-color: #3498db;
+  --background-color: #f5f6fa;
+  --text-color: #2c3e50;
+  --border-color: #dcdde1;
+  --hover-color: #f1f2f6;
+  --message-own-bg: #3498db;
+  --message-other-bg: #f1f2f6;
+}
+
+#root {
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  display: flex;
+}
+
+/* Login page styles */
+/* Container holds the full-screen background image and the centered form */
+.login-container {
+  position: relative;
+  min-height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  background-color: #000; 
+}
+
+/* Fullscreen background image */
+.login-image {
+  position: fixed;
+  inset: 0; 
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+}
+
+.login-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Layout that centers the form in the viewport */
+.login-layout {
+  position: fixed;
+  inset: 0;
+  z-index: 10; 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100vh;
+  padding: 24px;
+  box-sizing: border-box;
+  pointer-events: none; 
+}
+
+/* Centered login form */
+.login-form {
+  width: 100%;
+  max-width: 380px;
+  background: rgba(255,255,255,0.95);
+  padding: 1.5rem;
+  opacity: 1;
+  border-radius: 8px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+  backdrop-filter: blur(6px);
+  pointer-events: auto; /* restore pointer events for the form */
+}
+
+.logo-container {
+  text-align: center;
+  margin-bottom: 2rem;
+  padding: 0.75rem;
+  background: rgba(255,255,255,0.5);
+  border-radius: 8px;
+  margin: -0.5rem -0.5rem 2rem -0.5rem;
+}
+
+.bmw-logo {
+  max-width: 200px;
+  height: auto;
+  border-radius: 6px;
+  display: inline-block;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  transition: transform 0.3s ease;
+}
+
+.bmw-logo:hover {
+  transform: scale(1.05);
+}
+
+.form-group {
+  margin-bottom: 0.875rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: #555;
+  font-size: 0.9rem;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  height: 36px;
+  box-sizing: border-box;
+}
+
+button {
+  width: 100%;
+  padding: 0.5rem;
+  height: 36px;
+  background-color: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  margin-top: 0.5rem;
+}
+
+button:hover {
+  background-color: #357abd;
+}
+
+button:disabled {
+  background-color: #93b8e4;
+  cursor: not-allowed;
+}
+
+.error-message {
+  background-color: #fee;
+  border: 1px solid #fcc;
+  color: #c00;
+  padding: 0.5rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+@media (max-width: 600px) {
+  .login-form {
+    max-width: 340px;
+    padding: 1.25rem;
+    border-radius: 10px;
+  }
+}
+
+.form-footer {
+  margin-top: 1rem;
+  text-align: center;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.form-footer a {
+  color: #4a90e2;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.form-footer a:hover {
+  text-decoration: underline;
+}
+
+/* Temporary Forum Access Button */
+.temp-forum-link {
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.temp-forum-button {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background-color: #f0ad4e;
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+}
+
+.temp-forum-button:hover {
+  background-color: #ec971f;
+}
+
+/* Forum styles */
+/* Modal styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: white;
+  padding: 25px;
+  border-radius: 20px;
+  min-width: 300px;
+  max-width: 90%;
+  position: relative;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.modal h3 {
+  margin-bottom: 20px;
+  color: var(--primary-color);
+  font-size: 1.5em;
+}
+
+.modal input {
+  width: calc(100% - 20px);
+  padding: 12px 10px;
+  margin-bottom: 20px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 1em;
+  transition: border-color 0.2s;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+}
+
+.modal-buttons button {
+  padding: 10px 25px;
+  border: none;
+  border-radius: 6px;
+  font-size: 1em;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.modal-buttons button:first-child {
+  background-color: var(--secondary-color);
+  color: white;
+}
+
+.modal-buttons button:last-child {
+  background-color: #e0e0e0;
+  color: var(--text-color);
+}
+
+.modal-buttons button:hover {
+  transform: translateY(-1px);
+}
+
+.modal input:focus {
+  outline: none;
+  border-color: var(--secondary-color);
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+.thread-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.new-thread-btn {
+  padding: 8px 16px;
+  background-color: var(--secondary-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.new-thread-btn:hover {
+  background-color: #2980b9;
+}
+
+.forum-container {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  background-color: var(--background-color);
+  color: var(--text-color);
+}
+
+.thread-list {
+  width: 300px;
+  background-color: white;
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.thread-list h2 {
+  padding: 20px;
+  margin: 0;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--primary-color);
+  transition: color 0.2s ease;
+}
+
+.thread-list h2:hover {
+  color: var(--secondary-color);
+}
+
+.threads {
+  overflow-y: auto;
+  flex-grow: 1;
+}
+
+.thread-item {
+  padding: 15px 20px;
+  border-bottom: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.thread-item:hover {
+  background-color: var(--hover-color);
+}
+
+.thread-item.selected {
+  background-color: var(--hover-color);
+  border-left: 4px solid var(--secondary-color);
+}
+
+.thread-item h3 {
+  margin: 0 0 5px 0;
+  font-size: 16px;
+}
+
+.thread-item p {
+  margin: 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.chat-area {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+  height: 100%;
+  position: relative;
+}
+
+.thread-title {
+  padding: 20px;
+  font-size: 1.2em;
+  font-weight: bold;
+  border-bottom: 1px solid var(--border-color);
+  background-color: white;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.messages {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.message {
+  max-width: 70%;
+  padding: 10px 15px;
+  border-radius: 10px;
+  background-color: var(--message-other-bg);
+  align-self: flex-start;
+}
+
+.message.own {
+  background-color: var(--message-own-bg);
+  color: white;
+  align-self: flex-end;
+}
+
+.message-header {
+  margin-bottom: 5px;
+  font-size: 14px;
+}
+
+.message-header .username {
+  font-weight: bold;
+  margin-right: 10px;
+}
+
+.message-header .timestamp {
+  color: #666;
+}
+
+.message.own .message-header .timestamp {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.message p {
+  margin: 0;
+  line-height: 1.4;
+}
+
+.message-input {
+  padding: 20px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  gap: 10px;
+}
+
+.message-input input {
+  flex-grow: 1;
+  padding: 10px 15px;
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  font-size: 14px;
+}
+
+.message-input button {
+  padding: 10px 15px;
+  width: 80px;
+  background-color: var(--secondary-color);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  flex-shrink: 0;
+}
+
+.message-input button:hover {
+  background-color: #2980b9;
+}
+
+.no-thread-selected {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-color);
+  text-align: center;
+}
+
+.no-thread-selected h2 {
+  margin: 0 0 10px 0;
+  color: var(--primary-color);
+}
+
+.no-thread-selected p {
+  margin: 0;
+  color: #666;
+}
+
+/* --- Loading Screen Styles --- */
+
+/* Container to center the spinner in the chat area or modal */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  padding: 2rem;
+  text-align: center;
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 8px;
+}
+
+/* The actual spinning element */
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid var(--border-color);
+  border-top: 5px solid var(--secondary-color); /* Uses your #3498db blue */
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1.5rem;
+}
+
+/* Loading text styling */
+.loading-container p {
+  color: var(--primary-color);
+  font-weight: 500;
+  font-size: 1.1rem;
+  margin: 0;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* Keyframes for the rotation */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Keyframes for a subtle text pulse */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* Specific adjustment for loading inside the modal */
+.modal .loading-container {
+  background-color: transparent;
+  padding: 1rem 0;
+}
+
+.modal .spinner {
+  width: 40px;
+  height: 40px;
+  border-width: 4px;
+}
+
+/* Ensure the chat area takes full height for the spinner to center correctly */
+.chat-area .loading-container {
+  flex: 1;
+}
