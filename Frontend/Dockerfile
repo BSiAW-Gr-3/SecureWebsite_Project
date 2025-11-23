@@ -17,7 +17,6 @@ RUN npm run build
 FROM nginx:alpine
 
 # -----------------------------------------------------------------
-# NEW STEP: Copy custom Nginx configuration to fix the 404 error
 # The default config is at /etc/nginx/conf.d/default.conf, 
 # but copying over the full nginx.conf is simpler.
 COPY nginx.conf /etc/nginx/conf.d/default.conf
@@ -28,6 +27,3 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Expose port 80 (standard Nginx port)
 EXPOSE 80
-
-# Command to run Nginx (default command handles this)
-# CMD ["nginx", "-g", "daemon off;"]
