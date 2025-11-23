@@ -39,65 +39,61 @@ jobs:
   deploy_frontend:
     name: Build & Push Frontend Image
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write 
-      contents: read
     environment: production
     needs: filter_changes
     if: needs.filter_changes.outputs.frontend_changed == 'true'
+    permissions:
+      id-token: write 
+      contents: read
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
       
-      - name: Configure AWS credentials
+      - name: Configure AWS credentials & ECR Login
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: ${{ secrets.AWS_CICD_ROLE_ARN }}
           role-session-name: github-actions-session
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
-
       - name: Build, tag, and push Frontend image
         env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REGISTRY_HOST: 004932907795.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
         run: |
+          IMAGE_URL=$ECR_REGISTRY_HOST/$ECR_FRONTEND_REPOSITORY:$TAG
+          
           cd Frontend
-          docker build -t $ECR_REGISTRY/$ECR_FRONTEND_REPOSITORY:$TAG .
-          docker push $ECR_REGISTRY/$ECR_FRONTEND_REPOSITORY:$TAG
+          docker build -t $IMAGE_URL .
+          docker push $IMAGE_URL
 
   deploy_backend:
     name: Build & Push Backend Image
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write 
-      contents: read
     environment: production
     needs: filter_changes
     if: needs.filter_changes.outputs.backend_changed == 'true'
+    permissions:
+      id-token: write 
+      contents: read
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
       
-      - name: Configure AWS credentials
+      - name: Configure AWS credentials & ECR Login
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: ${{ secrets.AWS_CICD_ROLE_ARN }}
           role-session-name: github-actions-session
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
-
       - name: Build, tag, and push Backend image
         env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REGISTRY_HOST: 004932907795.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
         run: |
+          IMAGE_URL=$ECR_REGISTRY_HOST/$ECR_BACKEND_REPOSITORY:$TAG
+          
           cd Backend
-          docker build -t $ECR_REGISTRY/$ECR_BACKEND_REPOSITORY:$TAG .
-          docker push $ECR_REGISTRY/$ECR_BACKEND_REPOSITORY:$TAG
+          docker build -t $IMAGE_URL .
+          docker push $IMAGE_URL
