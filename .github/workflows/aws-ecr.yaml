@@ -1,0 +1,97 @@
+name: Deploy to Amazon ECR
+
+on:
+  push:
+    branches: [ "main" ]
+
+env:
+  AWS_REGION: "eu-north-1"
+  ECR_FRONTEND_REPOSITORY: rybmw/front
+  ECR_BACKEND_REPOSITORY: rybmw/api
+  TAG: latest
+
+permissions:
+  contents: read
+
+jobs:
+  filter_changes:
+    runs-on: ubuntu-latest
+    name: Detect Code Changes
+    outputs:
+      frontend_changed: ${{ steps.filter.outputs.frontend }}
+      backend_changed: ${{ steps.filter.outputs.backend }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check for file changes in Frontend and Backend
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            frontend:
+              - 'Frontend/**'
+            backend:
+              - 'Backend/**'
+
+  deploy_frontend:
+    name: Build & Push Frontend Image
+    runs-on: ubuntu-latest
+    environment: production
+    needs: filter_changes
+    if: needs.filter_changes.outputs.frontend_changed == 'true'
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_CICD_ROLE_ARN }}
+          role-session-name: github-actions-session
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push Frontend image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          cd Frontend
+          docker build -t $ECR_REGISTRY/$ECR_FRONTEND_REPOSITORY:$TAG .
+          docker push $ECR_REGISTRY/$ECR_FRONTEND_REPOSITORY:$TAG
+
+  deploy_backend:
+    name: Build & Push Backend Image
+    runs-on: ubuntu-latest
+    environment: production
+    needs: filter_changes
+    if: needs.filter_changes.outputs.backend_changed == 'true'
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_CICD_ROLE_ARN }}
+          role-session-name: github-actions-session
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push Backend image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          cd Backend
+          docker build -t $ECR_REGISTRY/$ECR_BACKEND_REPOSITORY:$TAG .
+          docker push $ECR_REGISTRY/$ECR_BACKEND_REPOSITORY:$TAG
