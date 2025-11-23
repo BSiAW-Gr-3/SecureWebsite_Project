@@ -13,7 +13,7 @@ RUN npm install
 COPY . .
 RUN npm run build 
 
-# Stage 2: Build the nginx image to serve the static assets
+# Stage 2: Build the nginx image to serve the static assets build in builder stage
 FROM nginx:alpine
 
 # Copy custom nginx configuration
