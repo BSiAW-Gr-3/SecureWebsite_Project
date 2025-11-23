@@ -59,13 +59,12 @@ jobs:
 
       - name: Build, tag, and push Frontend image
         env:
-          ECR_REGISTRY_HOST: 004932907795.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
+          ECR_REGISTRY_HOST: ${{ secrets.AWS_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
         run: |
           IMAGE_URL=$ECR_REGISTRY_HOST/$ECR_FRONTEND_REPOSITORY:$TAG
           
           cd Frontend
-          docker build -t $IMAGE_URL .
-          docker push $IMAGE_URL
+          docker buildx build --platform linux/amd64,linux/arm64 -t $IMAGE_URL . --push
 
   deploy_backend:
     name: Build & Push Backend Image
@@ -90,10 +89,9 @@ jobs:
 
       - name: Build, tag, and push Backend image
         env:
-          ECR_REGISTRY_HOST: 004932907795.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
+          ECR_REGISTRY_HOST: ${{ secrets.AWS_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
         run: |
           IMAGE_URL=$ECR_REGISTRY_HOST/$ECR_BACKEND_REPOSITORY:$TAG
           
           cd Backend
-          docker build -t $IMAGE_URL .
-          docker push $IMAGE_URL
+          docker buildx build --platform linux/amd64,linux/arm64 -t $IMAGE_URL . --push
