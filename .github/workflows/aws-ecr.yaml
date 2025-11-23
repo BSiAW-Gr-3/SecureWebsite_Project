@@ -57,11 +57,13 @@ jobs:
           role-to-assume: ${{ secrets.AWS_CICD_ROLE_ARN }}
           role-session-name: github-actions-session
 
+      - name: Login to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
       - name: Build, tag, and push Frontend image
-        env:
-          ECR_REGISTRY_HOST: 004932907795.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
         run: |
-          IMAGE_URL=$ECR_REGISTRY_HOST/$ECR_FRONTEND_REPOSITORY:$TAG
+          IMAGE_URL=${{ steps.ecr.outputs.registry }}/$ECR_FRONTEND_REPOSITORY:$TAG
           
           cd Frontend
           docker buildx create --name multi-arch-builder --driver docker-container --use
@@ -88,12 +90,15 @@ jobs:
           role-to-assume: ${{ secrets.AWS_CICD_ROLE_ARN }}
           role-session-name: github-actions-session
 
+      - name: Login to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
       - name: Build, tag, and push Backend image
-        env:
-          ECR_REGISTRY_HOST: 004932907795.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
         run: |
-          IMAGE_URL=$ECR_REGISTRY_HOST/$ECR_BACKEND_REPOSITORY:$TAG
+          IMAGE_URL=${{ steps.ecr.outputs.registry }}/$ECR_BACKEND_REPOSITORY:$TAG
           
           cd Backend
           docker buildx create --name multi-arch-builder --driver docker-container --use
           docker buildx build --platform linux/amd64,linux/arm64 -t $IMAGE_URL . --push
+          
