@@ -156,7 +156,9 @@ jobs:
         uses: zaproxy/action-full-scan@v0.12.0
         with:
           target: 'http://localhost:8000' 
-          cmd_options: '-r zap-dast-report.sarif -z "-config api.request.method.add=WebSocket -config rules.rule.10109.maxChildren=1000"'
+          issue_title: false
+          sarif_output: zap-dast-report.sarif
+          cmd_options: '-z "-config rules.rule.10109.maxChildren=1000"'
 
       - name: Upload DAST Scan results to GitHub Security tab
         if: ${{ always() }}
