@@ -13,18 +13,6 @@ The application follows a standard microservice architecture deployed via Kubern
 | **Database**    | **AWS DynamoDB**        | Stores user data (`forum_users`) and chat messages (`forum_chat_messages`).                                       |
 | **Networking**  | **AWS ALB Ingress**     | Routes traffic for the domain `rybmw.space`.                                                                      |
 
-## ⚙️ Local Development Setup
-
-You can run the frontend and backend services using `docker-compose.yml`. (only in selfhosted branch!)
-
-1.  **Build and Run Services:**
-    ```bash
-    docker-compose up --build
-    ```
-2.  **Access Points:**
-    - **Frontend (Vite Dev Server):** `http://localhost:5173`
-    - **Backend API (FastAPI):** `http://localhost:8000`
-
 ---
 
 ## ☁️ EKS Deployment (Terraform)
