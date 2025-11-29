@@ -84,7 +84,7 @@ jobs:
 
       - name: Run Trivy vulnerability scan on Frontend Image
         id: trivy_frontend_scan
-        uses: aquasecurity/trivy-action@latest
+        uses: aquasecurity/trivy-action@master
         with:
           image-ref: 'frontend-sast'
           format: 'sarif'
@@ -152,7 +152,7 @@ jobs:
           docker build -t backend-sast ./Backend/
 
       - name: Run Trivy vulnerability scan on Backend Image
-        uses: aquasecurity/trivy-action@latest
+        uses: aquasecurity/trivy-action@master
         with:
           image-ref: 'backend-sast'
           format: 'sarif' 
@@ -216,7 +216,7 @@ jobs:
             
         - name: Run Trivy IaC Scan on Terraform Directory
           id: trivy_iac_scan
-          uses: aquasecurity/trivy-action@latest
+          uses: aquasecurity/trivy-action@master
           with:
             scan-type: 'config' 
             input: 'Terraform/' 
