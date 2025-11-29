@@ -157,7 +157,7 @@ jobs:
         with:
           target: 'http://localhost:8000' 
           issue_title: false
-          sarif_output: zap-dast-report.sarif
+          token: ${{ secrets.GITHUB_TOKEN }}
           cmd_options: '-z "-config rules.rule.10109.maxChildren=1000"'
 
       - name: Upload DAST Scan results to GitHub Security tab
