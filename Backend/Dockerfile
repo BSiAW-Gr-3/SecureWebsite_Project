@@ -9,7 +9,7 @@ COPY . /app
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Expose port
+# Expose port 8000
 EXPOSE 8000
 
 # Run the application using uvicorn
