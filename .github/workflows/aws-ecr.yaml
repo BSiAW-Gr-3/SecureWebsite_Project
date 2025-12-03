@@ -158,18 +158,20 @@ jobs:
         with:
           target: 'http://localhost:80' 
           allow_issue_writing: false
-          fail_action: false  # Don't fail on warnings
+          fail_action: false
           token: ${{ secrets.GITHUB_TOKEN }}
           cmd_options: '-z "-config rules.rule.10109.maxChildren=1000"'
+          artifact_name: 'zap-backend-scan'
 
       - name: Run OWASP ZAP DAST Scan on Frontend
         uses: zaproxy/action-full-scan@v0.12.0
         with:
           target: 'http://localhost:8080' 
           allow_issue_writing: false
-          fail_action: false  # Don't fail on warnings
+          fail_action: false
           token: ${{ secrets.GITHUB_TOKEN }}
           cmd_options: '-z "-config rules.rule.10109.maxChildren=1000"'
+          artifact_name: 'zap-frontend-scan'
 
   deploy_frontend:
     name: Build & Push Frontend Image

@@ -25,6 +25,7 @@ COPY --chown=appuser:appgroup . .
 # Build the application
 RUN npm run build 
 
+
 # Stage 2: Build the nginx image to serve the static assets
 FROM nginx:alpine
 

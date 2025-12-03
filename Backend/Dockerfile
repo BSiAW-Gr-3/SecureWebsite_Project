@@ -16,7 +16,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Switch to non-root user
 USER appuser
 
-# Expose port 8000
+# Expose port 8000, then it will be exposed as 80
 EXPOSE 8000
 
 # Run the application using uvicorn
