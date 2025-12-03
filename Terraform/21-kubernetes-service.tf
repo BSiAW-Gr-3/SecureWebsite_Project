@@ -28,7 +28,7 @@ resource "kubernetes_service" "nginx_service" {
     port {
       protocol    = "TCP"
       port        = 80
-      target_port = 80
+      target_port = 8080
     }
     type = "ClusterIP"
   }

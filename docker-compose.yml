@@ -16,18 +16,30 @@ services:
     build: ./Backend/
     restart: always
     environment:
-      AWS_REGION: "eu-north-1"
-      AWS_ACCESS_KEY_ID: "DUMMY_KEY"
-      AWS_SECRET_ACCESS_KEY: "DUMMY_SECRET"
+      AWS_REGION: "DUMMYREGION"
+      AWS_ACCESS_KEY_ID: "DUMMYKEY"
+      AWS_SECRET_ACCESS_KEY: "DUMMYSECRET"
       SECRET_KEY: "a03143b0f89ae6552dd24a678729f3b70354b46e76a1599ef1f308e095da1069"
       DYNAMODB_ENDPOINT_URL: "http://dynamodb-local:8000"
       USERS_TABLE: "forum_users"
       CHAT_MESSAGES_TABLE: "forum_chat_messages"
       ACCESS_TOKEN_EXPIRE_MINUTES: 30
     ports:
-      - 8000:8000
+      - 80:8000
     volumes:
       - ./Backend:/app
     depends_on:
       dynamodb-local:
         condition: service_healthy
+
+  frontend:
+    container_name: frontend
+    build:
+      context: ./Frontend/
+      args:
+        VITE_API_URL: http://localhost
+    restart: always
+    ports:
+      - 8080:8080
+    depends_on:
+      - api

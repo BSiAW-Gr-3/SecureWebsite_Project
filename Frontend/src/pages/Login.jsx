@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 // Assuming these paths are correct for your project structure
 import loginPic from '../assets/login_pic.jpg';
 import bmwLogo from '../assets/rybmw.jpg';
+import { API_URL } from '../config';
 
 function Login() {
   const [username, setUsername] = useState('');
@@ -18,7 +19,7 @@ function Login() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('https://rybmw.space/api/token', {
+      const response = await fetch(`${API_URL}/api/token`, {
         method: 'POST',
         headers: {
           'accept': 'application/json',

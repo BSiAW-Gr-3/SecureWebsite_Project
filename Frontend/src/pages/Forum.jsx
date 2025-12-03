@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { API_URL, WS_URL } from '../config';
 import '../App.css';
 
-// WebSocket URL - replace with your FastAPI WebSocket endpoint
-const WS_URL = 'wss://rybmw.space/api/ws/chat'; 
+// WebSocket URL - now using environment variable
+const WS_CHAT_URL = `${WS_URL}/api/ws/chat`; 
 
 // The single, fixed ID for the main chat thread
 const MAIN_THREAD_ID = 1;
@@ -54,7 +55,7 @@ function Forum() {
 
     const fetchUser = async () => {
       try {
-        const response = await fetch('https://rybmw.space/api/users/me', {
+        const response = await fetch(`${API_URL}/api/users/me`, {
           method: 'GET',
           headers: {
             'accept': 'application/json',
@@ -99,7 +100,7 @@ function Forum() {
     }
 
     const token = localStorage.getItem('token');
-    const ws = new WebSocket(WS_URL);
+    const ws = new WebSocket(WS_CHAT_URL);
     
     ws.onopen = () => {
       console.log('Connected to WebSocket');
@@ -164,10 +165,6 @@ function Forum() {
       // Send the message content as plain text
       socket.send(newMessage.trim()); 
       setNewMessage('');
-      
-      // OPTIONAL: Add a temporary local message to make the UI instant, 
-      // but remember to handle duplicate receipt when the server echoes back.
-      // For simplicity and reliability, we rely on the server echo.
     }
   }, [socket, newMessage, selectedThread]);
 

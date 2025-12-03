@@ -151,7 +151,7 @@ resource "kubernetes_deployment" "nginx_deployment" {
           image = "004932907795.dkr.ecr.eu-north-1.amazonaws.com/rybmw/front:latest"
 
           port {
-            container_port = 80
+            container_port = 8080
           }
 
           resources {

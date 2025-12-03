@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { API_URL } from '../config'
 import loginPic from '../assets/login_pic.jpg'
 import bmwLogo from '../assets/rybmw.jpg'
 
@@ -12,9 +13,30 @@ function Register() {
   const [error, setError] = useState('')
   const navigate = useNavigate()
 
+  // Email validation function
+  const isValidEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return emailRegex.test(email)
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+
+    if (username.length < 3) {
+      setError('Nazwa użytkownika musi mieć minimum 3 znaki')
+      return
+    }
+
+    if (!isValidEmail(email)) {
+      setError('Podaj prawidłowy adres email')
+      return
+    }
+
+    if (password.length < 12) {
+      setError('Hasło musi mieć minimum 12 znaków')
+      return
+    }
 
     if (password !== confirmPassword) {
       setError('Hasła nie są takie same')
@@ -24,7 +46,7 @@ function Register() {
     setIsLoading(true)
 
     try {
-      const response = await fetch('https://rybmw.space/api/register', {
+      const response = await fetch(`${API_URL}/api/register`, {
         method: 'POST',
         headers: {
           'accept': 'application/json',
@@ -47,6 +69,7 @@ function Register() {
       navigate('/login')
     } catch (err) {
       setError(err.message || 'Wystąpił błąd podczas rejestracji')
+      console.error('Registration error:', err)
     } finally {
       setIsLoading(false)
     }
@@ -80,7 +103,7 @@ function Register() {
           <div className="form-group">
           <label htmlFor="email">Email</label>
             <input
-              type="text"
+              type="email"
               id="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}

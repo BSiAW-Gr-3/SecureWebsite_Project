@@ -136,7 +136,7 @@ jobs:
   dast_scan:
     name: Dynamic Application Security Test (DAST)
     runs-on: ubuntu-latest
-    needs: [check_backend_container]
+    needs: [check_backend_container, check_frontend_container]
     if: always()
     permissions:
       id-token: write 
@@ -150,12 +150,21 @@ jobs:
       - name: Start Application Stack with DynamoDB Local
         run: |
           docker compose up --build -d 
-          timeout 60 bash -c 'until curl --silent --fail http://localhost:8000/ > /dev/null; do echo -n "."; sleep 3; done'
+          timeout 60 bash -c 'until curl --silent --fail http://localhost:80/ > /dev/null; do echo -n "."; sleep 3; done'
+          timeout 60 bash -c 'until curl --silent --fail http://localhost:8080/ > /dev/null; do echo -n "."; sleep 3; done'
 
-      - name: Run OWASP ZAP DAST Scan
+      - name: Run OWASP ZAP DAST Scan on Backend
         uses: zaproxy/action-full-scan@v0.12.0
         with:
-          target: 'http://localhost:8000' 
+          target: 'http://localhost:80' 
+          allow_issue_writing: false
+          token: ${{ secrets.GITHUB_TOKEN }}
+          cmd_options: '-z "-config rules.rule.10109.maxChildren=1000"'
+
+      - name: Run OWASP ZAP DAST Scan on Frontend
+        uses: zaproxy/action-full-scan@v0.12.0
+        with:
+          target: 'http://localhost:8080' 
           allow_issue_writing: false
           token: ${{ secrets.GITHUB_TOKEN }}
           cmd_options: '-z "-config rules.rule.10109.maxChildren=1000"'
@@ -164,7 +173,7 @@ jobs:
     name: Build & Push Frontend Image
     runs-on: ubuntu-latest
     environment: production
-    needs: [filter_changes, check_frontend_container, codeql_analysis]
+    needs: [dast_scan, filter_changes, check_frontend_container, codeql_analysis]
     if: needs.filter_changes.outputs.frontend_changed == 'true' && needs.check_frontend_container.result == 'success' && needs.codeql_analysis.result == 'success'
     permissions:
       id-token: write 
