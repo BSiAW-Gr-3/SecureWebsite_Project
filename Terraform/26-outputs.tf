@@ -2,7 +2,7 @@ output "alb_dns_name" {
   description = "The DNS name of the ALB Ingress - Paste it into DNS Alias Record in Domain Name Provider"
   value       = kubernetes_ingress_v1.app_ingress.status[0].load_balancer[0].ingress[0].hostname
 
-  depends_on = [ time_sleep.wait_60_seconds ]
+  depends_on = [ time_sleep.wait ]
 }
 
 output "kubeconfig_command" {
@@ -33,7 +33,7 @@ output "check_website" {
   description = "Check access to the website without DNS"
   value       = "curl -i --header \"Host: rybmw.space\" ${kubernetes_ingress_v1.app_ingress.status[0].load_balancer[0].ingress[0].hostname}"
 
-  depends_on = [ time_sleep.wait_60_seconds ]
+  depends_on = [ time_sleep.wait ]
 }
 
 output "check_dns" {

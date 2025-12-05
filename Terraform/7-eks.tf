@@ -22,6 +22,17 @@ resource "aws_iam_role_policy_attachment" "eks" {
   role       = aws_iam_role.eks.name
 }
 
+resource "aws_kms_key" "eks" {
+  description             = "EKS Secret Encryption Key"
+  deletion_window_in_days = 7
+  enable_key_rotation     = true
+}
+
+resource "aws_kms_alias" "eks" {
+  name          = "alias/${local.env}-${local.eks_name}-eks"
+  target_key_id = aws_kms_key.eks.key_id
+}
+
 resource "aws_eks_cluster" "eks" {
   name     = "${local.env}-${local.eks_name}"
   version  = local.eks_version
@@ -42,6 +53,13 @@ resource "aws_eks_cluster" "eks" {
   access_config {
     authentication_mode                         = "API"
     bootstrap_cluster_creator_admin_permissions = true
+  }
+
+  encryption_config {
+    provider {
+      key_arn = aws_kms_key.eks.arn
+    }
+    resources = ["secrets"]
   }
 
   depends_on = [aws_iam_role_policy_attachment.eks]
