@@ -136,7 +136,7 @@ jobs:
   dast_scan:
     name: Dynamic Application Security Test (DAST)
     runs-on: ubuntu-latest
-    needs: [filter_changes]
+    needs: [filter_changes, codeql_analysis]
     if: needs.filter_changes.outputs.frontend_changed == 'true' || needs.filter_changes.outputs.backend_changed == 'true'
     permissions:
       id-token: write 
