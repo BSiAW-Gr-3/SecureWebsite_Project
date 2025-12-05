@@ -136,8 +136,8 @@ jobs:
   dast_scan:
     name: Dynamic Application Security Test (DAST)
     runs-on: ubuntu-latest
-    needs: [check_backend_container, check_frontend_container]
-    if: always()
+    needs: [filter_changes]
+    if: needs.filter_changes.outputs.frontend_changed == 'true' || needs.filter_changes.outputs.backend_changed == 'true'
     permissions:
       id-token: write 
       contents: read
