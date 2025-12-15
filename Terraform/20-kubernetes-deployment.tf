@@ -1,7 +1,8 @@
 # --- fastapi-deployment ---
 resource "kubernetes_deployment" "fastapi_deployment" {
   metadata {
-    name = "fastapi-deployment"
+    name      = "fastapi-deployment"
+    namespace = kubernetes_namespace_v1.rybmw_app.metadata[0].name
     labels = {
       app = "fastapi-app"
     }
@@ -21,7 +22,23 @@ resource "kubernetes_deployment" "fastapi_deployment" {
         }
       }
       spec {
+        service_account_name = kubernetes_service_account_v1.default_sa_rybmw_app.metadata[0].name
+
         container {
+          security_context {
+            run_as_user                = 1001
+            run_as_group               = 1001
+            run_as_non_root            = true
+            privileged                 = false
+            allow_privilege_escalation = false
+            seccomp_profile {
+              type = "RuntimeDefault"
+            }
+            capabilities {
+              drop = ["ALL"]
+            }
+          }
+
           name  = "fastapi-container"
           image = "004932907795.dkr.ecr.eu-north-1.amazonaws.com/rybmw/api:latest"
 
@@ -126,7 +143,8 @@ resource "kubernetes_deployment" "fastapi_deployment" {
 # --- nodejs-deployment ---
 resource "kubernetes_deployment" "nginx_deployment" {
   metadata {
-    name = "nginx-deployment"
+    name      = "nginx-deployment"
+    namespace = kubernetes_namespace_v1.rybmw_app.metadata[0].name
     labels = {
       app = "nginx-app"
     }
@@ -146,7 +164,23 @@ resource "kubernetes_deployment" "nginx_deployment" {
         }
       }
       spec {
+        service_account_name = kubernetes_service_account_v1.default_sa_rybmw_app.metadata[0].name
+
         container {
+          security_context {
+            run_as_user                = 1001
+            run_as_group               = 1001
+            run_as_non_root            = true
+            privileged                 = false
+            allow_privilege_escalation = false
+            seccomp_profile {
+              type = "RuntimeDefault"
+            }
+            capabilities {
+              drop = ["ALL"]
+            }
+          }
+
           name  = "nginx-container"
           image = "004932907795.dkr.ecr.eu-north-1.amazonaws.com/rybmw/front:latest"
 

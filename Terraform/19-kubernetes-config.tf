@@ -1,7 +1,7 @@
 resource "kubernetes_secret" "fastapi_secrets" {
   metadata {
     name      = "fastapi-secrets"
-    namespace = "default" # Adjust if you use a specific namespace
+    namespace = kubernetes_namespace_v1.rybmw_app.metadata[0].name
   }
 
   # NOTE: The values must be Base64 encoded.
@@ -18,7 +18,7 @@ resource "kubernetes_secret" "fastapi_secrets" {
 resource "kubernetes_config_map" "fastapi_config" {
   metadata {
     name      = "fastapi-config"
-    namespace = "default" # Adjust if you use a specific namespace
+    namespace = kubernetes_namespace_v1.rybmw_app.metadata[0].name
   }
 
   data = {

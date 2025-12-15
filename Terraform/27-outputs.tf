@@ -1,13 +1,13 @@
 output "alb_dns_name" {
   description = "The DNS name of the ALB Ingress - Paste it into DNS Alias Record in Domain Name Provider"
-  value       = kubernetes_ingress_v1.app_ingress.status[0].load_balancer[0].ingress[0].hostname
+  value       = try(kubernetes_ingress_v1.app_ingress.status[0].load_balancer[0].ingress[0].hostname, "ALB not yet provisioned - run terraform apply again")
 
-  depends_on = [ time_sleep.wait ]
+  depends_on = [time_sleep.wait]
 }
 
 output "kubeconfig_command" {
   description = "Accessing Kubernetes Cluster"
-  value       = "aws eks update-kubeconfig --region ${local.region} --name ${local.env}-${local.eks_name}" 
+  value       = "aws eks update-kubeconfig --region ${local.region} --name ${local.env}-${local.eks_name}"
 }
 
 output "login_ecr_command" {
@@ -26,14 +26,14 @@ output "ecr_repository_backend_url" {
 
 output "update_image" {
   description = "Command to update image in ECR"
-  value = "docker buildx build --platform linux/amd64,linux/arm64 -t {REPO} --push ."
+  value       = "docker buildx build --platform linux/amd64,linux/arm64 -t {REPO} --push ."
 }
 
 output "check_website" {
   description = "Check access to the website without DNS"
-  value       = "curl -i --header \"Host: rybmw.space\" ${kubernetes_ingress_v1.app_ingress.status[0].load_balancer[0].ingress[0].hostname}"
+  value       = try(kubernetes_ingress_v1.app_ingress.status[0].load_balancer[0].ingress[0].hostname, null) != null ? "curl -i --header \"Host: rybmw.space\" ${kubernetes_ingress_v1.app_ingress.status[0].load_balancer[0].ingress[0].hostname}" : "ALB not yet provisioned - run terraform apply again"
 
-  depends_on = [ time_sleep.wait ]
+  depends_on = [time_sleep.wait]
 }
 
 output "check_dns" {

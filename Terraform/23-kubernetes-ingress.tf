@@ -1,7 +1,8 @@
 # --- app-ingress ---
 resource "kubernetes_ingress_v1" "app_ingress" {
   metadata {
-    name = "app-ingress"
+    name      = "app-ingress"
+    namespace = kubernetes_namespace_v1.rybmw_app.metadata[0].name
     annotations = {
       "kubernetes.io/ingress.class"                        = "alb"
       "alb.ingress.kubernetes.io/scheme"                   = "internet-facing"
@@ -47,5 +48,5 @@ resource "kubernetes_ingress_v1" "app_ingress" {
     }
   }
 
-  depends_on = [ helm_release.aws_lbc]
+  depends_on = [helm_release.aws_lbc]
 }

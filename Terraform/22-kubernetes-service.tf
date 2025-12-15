@@ -1,7 +1,8 @@
 # --- fastapi-service ---
 resource "kubernetes_service" "fastapi_service" {
   metadata {
-    name = "fastapi-service"
+    name      = "fastapi-service"
+    namespace = kubernetes_namespace_v1.rybmw_app.metadata[0].name
   }
   spec {
     selector = {
@@ -19,7 +20,8 @@ resource "kubernetes_service" "fastapi_service" {
 # --- nodejs-service ---
 resource "kubernetes_service" "nginx_service" {
   metadata {
-    name = "nginx-service"
+    name      = "nginx-service"
+    namespace = kubernetes_namespace_v1.rybmw_app.metadata[0].name
   }
   spec {
     selector = {

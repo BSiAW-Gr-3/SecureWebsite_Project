@@ -42,7 +42,7 @@ resource "aws_eks_cluster" "eks" {
     endpoint_private_access = true
     endpoint_public_access  = true
 
-    public_access_cidrs     = ["${local.cidr_block}"]
+    public_access_cidrs = ["${local.cidr_block}"]
 
     subnet_ids = [
       aws_subnet.private_zone1.id,

@@ -1,7 +1,8 @@
 # --- fastapi-hpa ---
 resource "kubernetes_horizontal_pod_autoscaler_v2" "fastapi_hpa" {
   metadata {
-    name = "fastapi-hpa"
+    name      = "fastapi-hpa"
+    namespace = kubernetes_namespace_v1.rybmw_app.metadata[0].name
   }
 
   spec {
@@ -28,7 +29,8 @@ resource "kubernetes_horizontal_pod_autoscaler_v2" "fastapi_hpa" {
 # --- nodejs-hpa ---
 resource "kubernetes_horizontal_pod_autoscaler_v2" "nginx_hpa" {
   metadata {
-    name = "nginx-hpa"
+    name      = "nginx-hpa"
+    namespace = kubernetes_namespace_v1.rybmw_app.metadata[0].name
   }
 
   spec {
