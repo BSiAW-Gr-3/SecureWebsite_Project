@@ -31,7 +31,7 @@ resource "aws_iam_policy" "eks_admin" {
             "Action": [
                 "eks:*"
             ],
-            "Resource": "*"
+            "Resource": "${aws_eks_cluster.eks.arn}"
         },
         {
             "Effect": "Allow",

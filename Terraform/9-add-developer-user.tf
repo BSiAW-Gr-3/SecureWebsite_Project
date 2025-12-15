@@ -15,7 +15,7 @@ resource "aws_iam_policy" "developer_eks" {
                 "eks:DescribeCluster",
                 "eks:ListClusters"
             ],
-            "Resource": "*"
+            "Resource": "${aws_eks_cluster.eks.arn}"
         }
     ]
 }
