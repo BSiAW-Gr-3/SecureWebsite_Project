@@ -1,6 +1,9 @@
 resource "kubernetes_namespace_v1" "rybmw_app" {
   metadata {
     name = "rybmw-app"
+    labels = {
+      "pod-security.kubernetes.io/enforce" = "restricted"
+    }
   }
 }
 

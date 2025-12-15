@@ -1,8 +1,10 @@
 """
 Main FastAPI application
 """
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 
 from handlers.database import init_db
@@ -19,6 +21,26 @@ async def lifespan(app: FastAPI):
 
 # Create FastAPI app
 app = FastAPI(title="Forum API", lifespan=lifespan)
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Custom handler to sanitize validation errors and hide sensitive data"""
+    errors = []
+    for error in exc.errors():
+        if 'password' in error.get('loc', []):
+            error_dict = {
+                "type": error.get("type"),
+                "loc": error.get("loc"),
+                "msg": error.get("msg"),
+            }
+        else:
+            error_dict = error
+        errors.append(error_dict)
+    
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={"detail": errors}
+    )
 
 # CORS middleware
 app.add_middleware(

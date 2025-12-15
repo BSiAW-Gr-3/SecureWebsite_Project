@@ -38,6 +38,8 @@ resource "aws_eks_cluster" "eks" {
   version  = local.eks_version
   role_arn = aws_iam_role.eks.arn
 
+  enabled_cluster_log_types = ["audit", "api", "authenticator", "controllerManager", "scheduler"]
+
   vpc_config {
     endpoint_private_access = true
     endpoint_public_access  = true

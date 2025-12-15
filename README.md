@@ -57,12 +57,12 @@ You must manually delete the Ingress resource and wait for the Application Load 
 2.  **Delete the Ingress** (triggers ALB deletion):
 
     ```bash
-    kubectl delete ingress app-ingress
+    kubectl delete -n rybmw-app ingress app-ingress
 
     # Optional: Delete other resources to prevent issues
-    kubectl delete deployment fastapi-deployment nginx-deployment
-    kubectl delete service fastapi-service nginx-service
-    kubectl delete hpa fastapi-hpa nginx-hpa
+    kubectl delete -n rybmw-app deployment fastapi-deployment nginx-deployment
+    kubectl delete -n rybmw-app service fastapi-service nginx-service
+    kubectl delete -n rybmw-app hpa fastapi-hpa nginx-hpa
     ```
 
 3.  **WAIT 5 MINUTES.** The ALB deletion is asynchronous and mandatory before continuing.
