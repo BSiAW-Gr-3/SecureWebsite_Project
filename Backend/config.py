@@ -15,8 +15,8 @@ CHAT_MESSAGES_TABLE = os.getenv("CHAT_MESSAGES_TABLE", "forum_chat_messages")
 
 # CloudWatch Configuration
 CLOUDWATCH_ENDPOINT_URL = os.getenv("CLOUDWATCH_ENDPOINT_URL", None)
-CLOUDWATCH_LOG_GROUP = os.getenv("CLOUDWATCH_LOG_GROUP", "ryBMW-Backend-Logs")
-CLOUDWATCH_LOG_STREAM = os.getenv("CLOUDWATCH_LOG_STREAM", "ryBMW-Backend-Stream")
+CLOUDWATCH_LOG_GROUP = os.getenv("CLOUDWATCH_LOG_GROUP", "API-Logs")
+CLOUDWATCH_LOG_STREAM = os.getenv("CLOUDWATCH_LOG_STREAM", "API-Stream")
 
 # JWT Configuration
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")

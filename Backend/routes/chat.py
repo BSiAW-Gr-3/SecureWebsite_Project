@@ -9,7 +9,7 @@ from schemas.models import User, ChatMessage
 from schemas.schemas import ChatMessageResponse
 from handlers.auth import get_current_active_user
 from handlers.websocket import manager
-from handlers.database import get_db, DynamoDBClient
+from handlers.database import get_db
 from config import SECRET_KEY, ALGORITHM
 
 router = APIRouter()

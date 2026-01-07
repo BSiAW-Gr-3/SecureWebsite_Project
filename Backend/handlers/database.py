@@ -2,9 +2,9 @@
 Database initialization and connection management for DynamoDB
 """
 import boto3
+import asyncio
 from botocore.exceptions import ClientError
 from typing import Optional, List
-import asyncio
 
 from config import (
     AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY,

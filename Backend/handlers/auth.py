@@ -11,7 +11,7 @@ from fastapi.security import OAuth2PasswordBearer
 from config import SECRET_KEY, ALGORITHM
 from schemas.models import User
 from schemas.schemas import TokenData
-from handlers.database import get_db, DynamoDBClient
+from handlers.database import get_db
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/token")
 

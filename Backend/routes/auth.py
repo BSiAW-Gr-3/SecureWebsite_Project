@@ -8,7 +8,7 @@ from datetime import timedelta
 from schemas.models import User
 from schemas.schemas import UserCreate, UserResponse, Token
 from handlers.auth import get_password_hash, verify_password, create_access_token, get_current_active_user
-from handlers.database import get_db, DynamoDBClient
+from handlers.database import get_db
 from config import ACCESS_TOKEN_EXPIRE_MINUTES
 
 router = APIRouter()

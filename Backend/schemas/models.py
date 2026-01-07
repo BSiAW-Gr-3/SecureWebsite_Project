@@ -3,7 +3,6 @@ DynamoDB Models and Data Access Layer
 """
 from pydantic import BaseModel, EmailStr, Field
 from datetime import datetime
-from typing import Optional, List
 from decimal import Decimal
 import uuid
 

@@ -18,6 +18,7 @@ def async_wrap(func):
         return await loop.run_in_executor(None, lambda: func(*args, **kwargs))
     return run
 
+
 class CloudWatchClient():
     def __init__(self):
         session_config = {
