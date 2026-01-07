@@ -2,14 +2,15 @@
 Main FastAPI application
 """
 import uvicorn
+from contextlib import asynccontextmanager
+from fastapi.responses import JSONResponse
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
-from contextlib import asynccontextmanager
 
-from handlers.database import init_db
 from handlers.logger import init_logger, log_message
+from schemas.schemas import LogMessage
+from handlers.database import init_db
 from routes import auth, chat
 
 # Lifespan context manager
@@ -64,8 +65,8 @@ app.add_middleware(
 @app.middleware("http")
 async def monitor_session(request: Request, call_next):
     response = await call_next(request)
-    log_message_str = f"IP: {request.client.host} | Method: {request.method} | Path: {request.url.path} | User-Agent: {request.headers.get('user-agent', 'unknown')} | Status: {response.status_code}"
-    await log_message(log_message_str)
+    message = LogMessage.from_request(request, response)
+    await log_message(message.to_message)
     return response 
 
 # Include routers 
