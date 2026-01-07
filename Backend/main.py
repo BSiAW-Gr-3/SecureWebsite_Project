@@ -1,6 +1,7 @@
 """
 Main FastAPI application
 """
+import uvicorn
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
@@ -8,6 +9,7 @@ from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 
 from handlers.database import init_db
+from handlers.logger import init_logger, log_message
 from routes import auth, chat
 
 # Lifespan context manager
@@ -15,6 +17,7 @@ from routes import auth, chat
 async def lifespan(app: FastAPI):
     # Startup
     await init_db()
+    await init_logger()
     yield
     # Shutdown
     pass
@@ -57,7 +60,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers (routes already have /api prefix in their definitions)
+# Monitor session
+@app.middleware("http")
+async def monitor_session(request: Request, call_next):
+    response = await call_next(request)
+    log_message_str = f"IP: {request.client.host} | Method: {request.method} | Path: {request.url.path} | User-Agent: {request.headers.get('user-agent', 'unknown')} | Status: {response.status_code}"
+    await log_message(log_message_str)
+    return response 
+
+# Include routers 
 app.include_router(auth.router, tags=["Authentication"])
 app.include_router(chat.router, tags=["Chat"])
 
@@ -67,5 +78,4 @@ async def root():
     return {"message": "Forum API is running"}
 
 if __name__ == "__main__":
-    import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

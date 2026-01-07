@@ -4,24 +4,13 @@ Database initialization and connection management for DynamoDB
 import boto3
 from botocore.exceptions import ClientError
 from typing import Optional, List
-from datetime import datetime
-from decimal import Decimal
 import asyncio
-from functools import wraps
 
 from config import (
     AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY,
     DYNAMODB_ENDPOINT_URL, USERS_TABLE, CHAT_MESSAGES_TABLE
 )
 from schemas.models import User, ChatMessage
-
-def async_wrap(func):
-    """Decorator to run sync functions in executor for async compatibility"""
-    @wraps(func)
-    async def run(*args, **kwargs):
-        loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, lambda: func(*args, **kwargs))
-    return run
 
 class DynamoDBClient:
     def __init__(self):

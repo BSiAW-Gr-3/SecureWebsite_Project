@@ -11,6 +11,23 @@ services:
       retries: 5
       start_period: 20s
 
+  localstack:
+    container_name: localstack
+    image: localstack/localstack:latest
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=logs
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -f http://localhost:4566/_localstack/health || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   api:
     container_name: python
     build: ./Backend/
@@ -23,6 +40,7 @@ services:
       DYNAMODB_ENDPOINT_URL: "http://dynamodb-local:8000"
       USERS_TABLE: "forum_users"
       CHAT_MESSAGES_TABLE: "forum_chat_messages"
+      CLOUDWATCH_ENDPOINT_URL: "http://localstack:4566"
       ACCESS_TOKEN_EXPIRE_MINUTES: 30
     ports:
       - 80:8000
