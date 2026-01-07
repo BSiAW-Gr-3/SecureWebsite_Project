@@ -1,12 +1,12 @@
 """
 Main FastAPI application
 """
-import uvicorn
-from contextlib import asynccontextmanager
-from fastapi.responses import JSONResponse
-from fastapi import FastAPI, Request, status
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, Request, status
+from fastapi.responses import JSONResponse
+from contextlib import asynccontextmanager
+import uvicorn
 
 from handlers.logger import init_logger, log_message
 from schemas.schemas import LogMessage
