@@ -1,16 +1,17 @@
 """
 Database initialization and connection management for DynamoDB
 """
-import boto3
-import asyncio
 from botocore.exceptions import ClientError
 from typing import Optional, List
+import asyncio
+import boto3
+
+from schemas.models import User, ChatMessage
 
 from config import (
     AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY,
     DYNAMODB_ENDPOINT_URL, USERS_TABLE, CHAT_MESSAGES_TABLE
 )
-from schemas.models import User, ChatMessage
 
 class DynamoDBClient:
     def __init__(self):

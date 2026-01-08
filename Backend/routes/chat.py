@@ -2,14 +2,15 @@
 Chat routes: message history and WebSocket real-time chat
 """
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
-from typing import List
 from jose import JWTError, jwt
+from typing import List
 
-from schemas.models import User, ChatMessage
-from schemas.schemas import ChatMessageResponse
 from handlers.auth import get_current_active_user
+from schemas.schemas import ChatMessageResponse
+from schemas.models import User, ChatMessage
 from handlers.websocket import manager
 from handlers.database import get_db
+
 from config import SECRET_KEY, ALGORITHM
 
 router = APIRouter()

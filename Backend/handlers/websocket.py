@@ -1,8 +1,8 @@
 """
 WebSocket connection manager for real-time chat
 """
-from typing import List
 from fastapi import WebSocket
+from typing import List
 
 class ConnectionManager:
     def __init__(self):

@@ -1,9 +1,9 @@
-import time
-import boto3
-import asyncio
+from botocore.exceptions import ClientError
 from typing import Optional
 from functools import wraps
-from botocore.exceptions import ClientError
+import asyncio
+import boto3
+import time
 
 from config import (
     AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, 

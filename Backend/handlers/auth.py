@@ -1,17 +1,18 @@
 """
 Authentication utilities: password hashing, JWT token creation, user verification
 """
-import bcrypt
-from jose import JWTError, jwt
-from datetime import datetime, timedelta
-from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+from datetime import datetime, timedelta
+from jose import JWTError, jwt
+from typing import Optional
+import bcrypt
 
-from config import SECRET_KEY, ALGORITHM
-from schemas.models import User
 from schemas.schemas import TokenData
 from handlers.database import get_db
+from schemas.models import User
+
+from config import SECRET_KEY, ALGORITHM
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/token")
 

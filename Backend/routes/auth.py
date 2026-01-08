@@ -5,10 +5,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta
 
-from schemas.models import User
-from schemas.schemas import UserCreate, UserResponse, Token
 from handlers.auth import get_password_hash, verify_password, create_access_token, get_current_active_user
+from schemas.schemas import UserCreate, UserResponse, Token
 from handlers.database import get_db
+from schemas.models import User
+
 from config import ACCESS_TOKEN_EXPIRE_MINUTES
 
 router = APIRouter()
