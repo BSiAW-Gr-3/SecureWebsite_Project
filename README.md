@@ -21,8 +21,7 @@ The infrastructure is defined in the `Terraform/` directory. The cluster name is
 
 ### Prerequisites
 
-1.  **AWS Credentials:** Set your `local.aws_access_key` and `local.aws_secret_key` in `Terraform/0-locals.tf` in 0-locals.tf.
-2.  **Container Images:** Ensure the images are built and pushed to the specified ECR path (e.g., `004932907795.dkr.ecr.eu-north-1.amazonaws.com/rybmw/api:latest`).
+**AWS Credentials:** Set your `local.aws_access_key` and `local.aws_secret_key` in `Terraform/0-locals.tf` in 0-locals.tf.
 
 ### Deployment Steps
 
