@@ -179,7 +179,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     needs: [dast_scan, filter_changes, check_frontend_container, codeql_analysis]
-    if: needs.filter_changes.outputs.frontend_changed == 'true' && needs.check_frontend_container.result == 'success' && needs.codeql_analysis.result == 'success' && startsWith(github.ref, 'refs/tags/')
+    if: needs.filter_changes.outputs.frontend_changed == 'true' && needs.check_frontend_container.result == 'success' && needs.codeql_analysis.result == 'success'
     permissions:
       id-token: write 
       contents: read
@@ -212,7 +212,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     needs: [dast_scan, filter_changes, check_backend_container, codeql_analysis]
-    if: needs.filter_changes.outputs.backend_changed == 'true' && needs.check_backend_container.result == 'success' && needs.codeql_analysis.result == 'success' && startsWith(github.ref, 'refs/tags/')
+    if: needs.filter_changes.outputs.backend_changed == 'true' && needs.check_backend_container.result == 'success' && needs.codeql_analysis.result == 'success'
     permissions:
       id-token: write 
       contents: read
