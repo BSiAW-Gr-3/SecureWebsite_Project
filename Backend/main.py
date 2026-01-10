@@ -26,6 +26,7 @@ async def lifespan(app: FastAPI):
 # Create FastAPI app
 app = FastAPI(title="Forum API", lifespan=lifespan)
 
+
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     """Custom handler to sanitize validation errors and hide sensitive data"""
@@ -46,6 +47,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         content={"detail": errors}
     )
 
+
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
@@ -60,6 +62,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # Monitor session
 @app.middleware("http")
