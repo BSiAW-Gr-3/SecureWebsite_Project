@@ -1,3 +1,7 @@
+data "http" "my_ip" {
+  url = "https://ipv4.icanhazip.com"
+}
+
 locals {
   # AWS Credentials and Region
   region         = "eu-north-1"
@@ -17,4 +21,7 @@ locals {
   # Cloudflare API Token
   cloudflare_zone_id   = ""
   cloudflare_api_token = ""
+
+  # Your local CIDR block
+  cidr_block = "${chomp(data.http.my_ip.body)}/32"
 }

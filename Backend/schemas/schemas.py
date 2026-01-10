@@ -52,7 +52,6 @@ class LogMessage(BaseModel):
     @classmethod
     def from_request(cls, request: Request, response: Response):
         direct_ip = request.client.host if request.client else "unknown"
-        
         origin_ip = request.headers.get("cf-connecting-ip") or request.headers.get("x-forwarded-for")
         
         if origin_ip and "," in origin_ip:
