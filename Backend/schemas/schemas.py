@@ -48,9 +48,10 @@ class LogMessage(BaseModel):
     direct_ip: str  
     origin_ip: Optional[str] = None  
     user_agent: Optional[str] = None
+    username: Optional[str] = None
 
     @classmethod
-    def from_request(cls, request: Request, response: Response):
+    def from_middleware(cls, request: Request, response: Response) -> classmethod:
         direct_ip = request.client.host if request.client else "unknown"
         origin_ip = request.headers.get("cf-connecting-ip") or request.headers.get("x-forwarded-for")
         
@@ -63,7 +64,25 @@ class LogMessage(BaseModel):
             status_code=response.status_code,
             direct_ip=direct_ip,
             origin_ip=origin_ip,
-            user_agent=request.headers.get("user-agent")
+            user_agent=request.headers.get("user-agent"),
+        )
+
+    @classmethod
+    def from_request(cls, request: Request, username: str, code: int = 0) -> classmethod:
+        direct_ip = request.client.host if request.client else "unknown"
+        origin_ip = request.headers.get("cf-connecting-ip") or request.headers.get("x-forwarded-for")
+        
+        if origin_ip and "," in origin_ip:
+            origin_ip = origin_ip.split(",")[0].strip()
+
+        return cls(
+            method=request.method,
+            path=request.url.path,
+            status_code=code,  
+            direct_ip=direct_ip,
+            origin_ip=origin_ip,
+            user_agent=request.headers.get("user-agent"),
+            username=username
         )
 
     @property
@@ -73,6 +92,9 @@ class LogMessage(BaseModel):
         msg = f"IP: {display_ip}"
         if self.origin_ip and self.origin_ip != self.direct_ip:
             msg += f" (via LB: {self.direct_ip})"
+
+        if self.username:
+            msg += f" | User: {self.username}"
             
         return (f"{msg} | Method: {self.method} | Path: {self.path} | "
                 f"Status: {self.status_code} | UA: {self.user_agent or 'unknown'}")

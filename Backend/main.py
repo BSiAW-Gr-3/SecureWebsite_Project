@@ -68,8 +68,11 @@ app.add_middleware(
 @app.middleware("http")
 async def monitor_session(request: Request, call_next):
     response = await call_next(request)
-    message = LogMessage.from_request(request, response)
-    await log_message(message.to_message)
+
+    if not request.url.path.startswith("/api/token"):
+        msg = LogMessage.from_middleware(request, response)
+        await log_message(msg.to_message)
+        
     return response 
 
 # Include routers 

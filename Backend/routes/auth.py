@@ -1,12 +1,13 @@
 """
 Authentication routes: register, login, and user info
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta
 
 from handlers.auth import get_password_hash, verify_password, create_access_token, get_current_active_user
-from schemas.schemas import UserCreate, UserResponse, Token
+from schemas.schemas import UserCreate, UserResponse, Token, LogMessage
+from handlers.logger import log_message
 from handlers.database import get_db
 from schemas.models import User
 
@@ -51,18 +52,24 @@ async def register(user: UserCreate):
     )
 
 @router.post("/api/token", response_model=Token)
-async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
     """Login and get JWT access token"""
     db = get_db()
     user = await db.get_user_by_username(form_data.username)
     
     if not user or not verify_password(form_data.password, user.hashed_password):
+        msg = LogMessage.from_request(request, user.username, 401)
+        await log_message(msg.to_message)
+
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
+    msg = LogMessage.from_request(request, user.username, 200)
+    await log_message(msg.to_message)
+
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires
