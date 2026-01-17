@@ -7,7 +7,6 @@ import asyncio
 import boto3
 
 from schemas.models import User, ChatMessage
-
 from config import (
     AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY,
     DYNAMODB_ENDPOINT_URL, USERS_TABLE, DEFAULT_CHAT_MESSAGES_TABLE, CHAT_PREFIX
@@ -30,19 +29,18 @@ class DynamoDBClient:
         self.client = self.dynamodb.meta.client
         self.users_table = self.dynamodb.Table(USERS_TABLE)
     
+
     def _create_users_tables_sync(self):
-        """Create DynamoDB tables if they don't exist (synchronous)"""
-        # Create Users table
+        """Create Users table and wait until active"""
         try:
             self.client.describe_table(TableName=USERS_TABLE)
             print(f"Table {USERS_TABLE} already exists")
         except ClientError as e:
             if e.response['Error']['Code'] == 'ResourceNotFoundException':
+                print(f"Creating table {USERS_TABLE}...")
                 self.client.create_table(
                     TableName=USERS_TABLE,
-                    KeySchema=[
-                        {'AttributeName': 'username', 'KeyType': 'HASH'}
-                    ],
+                    KeySchema=[{'AttributeName': 'username', 'KeyType': 'HASH'}],
                     AttributeDefinitions=[
                         {'AttributeName': 'username', 'AttributeType': 'S'},
                         {'AttributeName': 'email', 'AttributeType': 'S'}
@@ -50,43 +48,36 @@ class DynamoDBClient:
                     GlobalSecondaryIndexes=[
                         {
                             'IndexName': 'email-index',
-                            'KeySchema': [
-                                {'AttributeName': 'email', 'KeyType': 'HASH'}
-                            ],
+                            'KeySchema': [{'AttributeName': 'email', 'KeyType': 'HASH'}],
                             'Projection': {'ProjectionType': 'ALL'},
-                            'ProvisionedThroughput': {
-                                'ReadCapacityUnits': 5,
-                                'WriteCapacityUnits': 5
-                            }
+                            'ProvisionedThroughput': {'ReadCapacityUnits': 5, 'WriteCapacityUnits': 5}
                         }
                     ],
-                    ProvisionedThroughput={
-                        'ReadCapacityUnits': 5,
-                        'WriteCapacityUnits': 5
-                    }
+                    ProvisionedThroughput={'ReadCapacityUnits': 5, 'WriteCapacityUnits': 5}
                 )
-                print(f"Created table {USERS_TABLE}")
-                # Wait for table to be active
+
                 waiter = self.client.get_waiter('table_exists')
-                waiter.wait(TableName=USERS_TABLE)
-        
+                waiter.wait(TableName=USERS_TABLE, WaiterConfig={'Delay': 1, 'MaxAttempts': 10})
+                print(f"Table {USERS_TABLE} is now ACTIVE")
+
     async def create_users_tables(self):
-        """Create DynamoDB tables if they don't exist (async wrapper)"""
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(None, self._create_users_tables_sync)
     
-    def _create_chat_tables(self, chat: str):
-        """Create a new chat messages table for a specific chat"""
+
+    def _create_chat_tables_sync(self, chat: str):
+        """Create a new chat messages table and WAIT until it's ACTIVE"""
+        clean_chat = "".join(c for c in chat if c.isalnum() or c in ('-', '_'))
+        table_name = f"{CHAT_PREFIX}{clean_chat}"
+        
         try:
-            self.client.describe_table(TableName=f"{CHAT_PREFIX}{chat}")
-            print(f"Table {chat} already exists")
+            self.client.describe_table(TableName=table_name)
         except ClientError as e:
             if e.response['Error']['Code'] == 'ResourceNotFoundException':
+                print(f"Creating chat table {table_name}...")
                 self.client.create_table(
-                    TableName=f"{CHAT_PREFIX}{chat}",
-                    KeySchema=[
-                        {'AttributeName': 'message_id', 'KeyType': 'HASH'}
-                    ],
+                    TableName=table_name,
+                    KeySchema=[{'AttributeName': 'message_id', 'KeyType': 'HASH'}],
                     AttributeDefinitions=[
                         {'AttributeName': 'message_id', 'AttributeType': 'S'},
                         {'AttributeName': 'timestamp_sort', 'AttributeType': 'N'}
@@ -99,154 +90,147 @@ class DynamoDBClient:
                                 {'AttributeName': 'timestamp_sort', 'KeyType': 'RANGE'}
                             ],
                             'Projection': {'ProjectionType': 'ALL'},
-                            'ProvisionedThroughput': {
-                                'ReadCapacityUnits': 5,
-                                'WriteCapacityUnits': 5
-                            }
+                            'ProvisionedThroughput': {'ReadCapacityUnits': 5, 'WriteCapacityUnits': 5}
                         }
                     ],
-                    ProvisionedThroughput={
-                        'ReadCapacityUnits': 5,
-                        'WriteCapacityUnits': 5
-                    }
+                    ProvisionedThroughput={'ReadCapacityUnits': 5, 'WriteCapacityUnits': 5}
                 )
-                print(f"Created table {CHAT_PREFIX}{chat}")
-                # Wait for table to be active
+
+                print(f"Waiting for {table_name} to become active...")
                 waiter = self.client.get_waiter('table_exists')
-                waiter.wait(TableName=f"{CHAT_PREFIX}{chat}")
+                waiter.wait(TableName=table_name, WaiterConfig={'Delay': 1, 'MaxAttempts': 15})
+                print(f"Table {table_name} is now READY.")
                 
     async def create_chat_tables(self, chat: str):
-        """Create chat messages tables for a specific chat (async wrapper)"""
         loop = asyncio.get_event_loop()
-        await loop.run_in_executor(None, self._create_chat_tables, chat)
+        await loop.run_in_executor(None, self._create_chat_tables_sync, chat)
 
-    def _get_chat_tables(self) -> List[str]:
-        """Get list of existing chat message tables"""
+
+    def _check_table_status_sync(self, chat: str) -> str:
+        """
+        Checks the status of a chat table and its indexes.
+        Returns: 'ACTIVE', 'CREATING', or 'NOT_FOUND'
+        """
+        clean_chat = "".join(c for c in chat if c.isalnum() or c in ('-', '_'))
+        table_name = f"{CHAT_PREFIX}{clean_chat}"
+        
+        try:
+            response = self.client.describe_table(TableName=table_name)
+            table_data = response['Table']
+            table_status = table_data['TableStatus']
+
+            if table_status != 'ACTIVE':
+                return table_status
+
+            gsi_list = table_data.get('GlobalSecondaryIndexes', [])
+            for gsi in gsi_list:
+                if gsi['IndexStatus'] != 'ACTIVE':
+                    return "CREATING"
+
+            return "ACTIVE"
+            
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'ResourceNotFoundException':
+                return "NOT_FOUND"
+            raise e
+
+    async def check_table_status(self, chat: str) -> str:
+        """Async wrapper to check if a table exists or is in progress"""
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, self._check_table_status_sync, chat)
+
+
+    def _get_chat_tables_sync(self) -> List[str]:
         try:
             response = self.client.list_tables()
             tables = response.get('TableNames', [])
-            chat_tables = [table for table in tables if table.startswith(CHAT_PREFIX)]
-            return chat_tables
-        except ClientError as e:
-            print(f"Error listing tables: {e}")
+            return [table for table in tables if table.startswith(CHAT_PREFIX)]
+        except ClientError:
             return []
         
     async def get_chat_tables(self) -> List[str]:
-        """Get list of existing chat message tables (async wrapper)"""
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, self._get_chat_tables)
+        return await loop.run_in_executor(None, self._get_chat_tables_sync)
 
-    # User operations
+
     def _create_user_sync(self, user: User) -> User:
-        """Create a new user (synchronous)"""
         item = user.to_dynamodb_item()
-        print(f"Attempting to create user: {item}")
-        try:
-            response = self.users_table.put_item(Item=item)
-            print(f"DynamoDB put_item response: {response}")
-            return user
-        except Exception as e:
-            print(f"Error creating user: {e}")
-            raise
+        self.users_table.put_item(Item=item)
+        return user
     
     async def create_user(self, user: User) -> User:
-        """Create a new user"""
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, self._create_user_sync, user)
     
+
     def _get_user_by_username_sync(self, username: str) -> Optional[User]:
-        """Get user by username (synchronous)"""
-        try:
-            response = self.users_table.get_item(Key={'username': username})
-            if 'Item' in response:
-                return User.from_dynamodb_item(response['Item'])
-            return None
-        except ClientError as e:
-            print(f"Error getting user by username: {e}")
-            return None
+        response = self.users_table.get_item(Key={'username': username})
+        if 'Item' in response:
+            return User.from_dynamodb_item(response['Item'])
+        return None
     
     async def get_user_by_username(self, username: str) -> Optional[User]:
-        """Get user by username"""
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, self._get_user_by_username_sync, username)
     
+
     def _get_user_by_email_sync(self, email: str) -> Optional[User]:
-        """Get user by email using GSI (synchronous)"""
-        try:
-            response = self.users_table.query(
-                IndexName='email-index',
-                KeyConditionExpression='email = :email',
-                ExpressionAttributeValues={':email': email}
-            )
-            if response['Items']:
-                return User.from_dynamodb_item(response['Items'][0])
-            return None
-        except ClientError as e:
-            print(f"Error getting user by email: {e}")
-            return None
+        response = self.users_table.query(
+            IndexName='email-index',
+            KeyConditionExpression='email = :email',
+            ExpressionAttributeValues={':email': email}
+        )
+        if response['Items']:
+            return User.from_dynamodb_item(response['Items'][0])
+        return None
     
     async def get_user_by_email(self, email: str) -> Optional[User]:
-        """Get user by email using GSI"""
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, self._get_user_by_email_sync, email)
     
-    # Chat message operations
+
     def _create_message_sync(self, message: ChatMessage, chat: str) -> ChatMessage:
-        """Create a new chat message (synchronous)"""
+        """Create a message, ensuring the table is ready first"""
         item = message.to_dynamodb_item()
         table = self.dynamodb.Table(f"{CHAT_PREFIX}{chat}")
-
-        try:
-            table.put_item(Item=item)
-            return message
-        except Exception as e:
-            print(f"Error creating message: {e}")
-            raise
+        table.put_item(Item=item)
+        return message
     
     async def create_message(self, message: ChatMessage, chat: str) -> ChatMessage:
-        """Create a new chat message"""
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, self._create_message_sync, message, chat)
     
-    def _get_recent_messages_sync(self, chat: str, limit: int = 50) -> List[ChatMessage]:
-        """Get recent chat messages (synchronous)"""
-        table = self.dynamodb.Table(f"{CHAT_PREFIX}{chat}")
 
+    def _get_recent_messages_sync(self, chat: str, limit: int = 50) -> List[ChatMessage]:
+        table_name = f"{CHAT_PREFIX}{chat}"
         try:
-            response = table.scan(Limit=limit * 2)  # Get more to sort
+            self.client.describe_table(TableName=table_name)
+            table = self.dynamodb.Table(table_name)
+            response = table.scan(Limit=limit * 2)
             items = response['Items']
-            
-            # Sort by timestamp (descending)
             items.sort(key=lambda x: float(x['timestamp_sort']), reverse=True)
             items = items[:limit]
-            
-            # Convert to ChatMessage objects and reverse for chronological order
             messages = [ChatMessage.from_dynamodb_item(item) for item in items]
             messages.reverse()
             return messages
-        except ClientError as e:
-            print(f"Error getting recent messages: {e}")
+        except ClientError:
             return []
     
     async def get_recent_messages(self, chat: str, limit: int = 50) -> List[ChatMessage]:
-        """Get recent chat messages"""
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, self._get_recent_messages_sync, chat, limit)
 
-# Global database client instance
+
 db_client: Optional[DynamoDBClient] = None
 
 async def init_db():
-    """Initialize database connection"""
     global db_client
     db_client = DynamoDBClient()
-
     await db_client.create_users_tables()
     await db_client.create_chat_tables(DEFAULT_CHAT_MESSAGES_TABLE)
     return db_client
 
 def get_db() -> DynamoDBClient:
-    """Get database client instance"""
     if db_client is None:
-        raise RuntimeError("Database not initialized. Call init_db() first.")
+        raise RuntimeError("Database not initialized.")
     return db_client

@@ -34,6 +34,17 @@ async def get_chat_history(
     ]
 
 
+@router.get("/api/chat/status/{chat}")
+async def get_chat_status(chat: str, current_user: User = Depends(get_current_active_user)):
+    """
+    Check if a chat table is 'ACTIVE', 'CREATING', or 'NOT_FOUND'.
+    Useful for frontend loading screens.
+    """
+    db = get_db()
+    status = await db.check_table_status(chat)
+    return {"status": status}
+
+
 @router.get("/api/chat/list", response_model=List[str])
 async def get_chat_list(current_user: User = Depends(get_current_active_user)):
     """Get list of available chats"""
@@ -131,11 +142,9 @@ async def websocket_chat(websocket: WebSocket, chat: str):
                     })
                     continue
             
-            # Regular message - save and broadcast
             chat_message = ChatMessage(username=username, message=data)
             await db.create_message(chat_message, chat_plain_name)
             
-            # Broadcast to all connected clients
             message_data = {
                 "type": "message",
                 "username": username,

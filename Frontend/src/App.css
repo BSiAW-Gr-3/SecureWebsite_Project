@@ -471,3 +471,68 @@ button:disabled {
   margin: 0;
   color: #666;
 }
+
+/* --- Loading Screen Styles --- */
+
+/* Container to center the spinner in the chat area or modal */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  padding: 2rem;
+  text-align: center;
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 8px;
+}
+
+/* The actual spinning element */
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid var(--border-color);
+  border-top: 5px solid var(--secondary-color); /* Uses your #3498db blue */
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1.5rem;
+}
+
+/* Loading text styling */
+.loading-container p {
+  color: var(--primary-color);
+  font-weight: 500;
+  font-size: 1.1rem;
+  margin: 0;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* Keyframes for the rotation */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Keyframes for a subtle text pulse */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* Specific adjustment for loading inside the modal */
+.modal .loading-container {
+  background-color: transparent;
+  padding: 1rem 0;
+}
+
+.modal .spinner {
+  width: 40px;
+  height: 40px;
+  border-width: 4px;
+}
+
+/* Ensure the chat area takes full height for the spinner to center correctly */
+.chat-area .loading-container {
+  flex: 1;
+}

@@ -20,7 +20,6 @@ async def register(user: UserCreate):
     """Register a new user"""
     db = get_db()
     
-    # Check if user exists
     existing_user = await db.get_user_by_username(user.username)
     if existing_user:
         raise HTTPException(
