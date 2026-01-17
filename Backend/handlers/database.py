@@ -57,7 +57,7 @@ class DynamoDBClient:
                 )
 
                 waiter = self.client.get_waiter('table_exists')
-                waiter.wait(TableName=USERS_TABLE, WaiterConfig={'Delay': 1, 'MaxAttempts': 10})
+                waiter.wait(TableName=USERS_TABLE, WaiterConfig={'Delay': 1, 'MaxAttempts': 20})
                 print(f"Table {USERS_TABLE} is now ACTIVE")
 
     async def create_users_tables(self):
@@ -67,8 +67,7 @@ class DynamoDBClient:
 
     def _create_chat_tables_sync(self, chat: str):
         """Create a new chat messages table and WAIT until it's ACTIVE"""
-        clean_chat = "".join(c for c in chat if c.isalnum() or c in ('-', '_'))
-        table_name = f"{CHAT_PREFIX}{clean_chat}"
+        table_name = f"{CHAT_PREFIX}{chat}"
         
         try:
             self.client.describe_table(TableName=table_name)
@@ -98,7 +97,7 @@ class DynamoDBClient:
 
                 print(f"Waiting for {table_name} to become active...")
                 waiter = self.client.get_waiter('table_exists')
-                waiter.wait(TableName=table_name, WaiterConfig={'Delay': 1, 'MaxAttempts': 15})
+                waiter.wait(TableName=table_name, WaiterConfig={'Delay': 2, 'MaxAttempts': 30})
                 print(f"Table {table_name} is now READY.")
                 
     async def create_chat_tables(self, chat: str):
@@ -111,28 +110,25 @@ class DynamoDBClient:
         Checks the status of a chat table and its indexes.
         Returns: 'ACTIVE', 'CREATING', or 'NOT_FOUND'
         """
-        clean_chat = "".join(c for c in chat if c.isalnum() or c in ('-', '_'))
-        table_name = f"{CHAT_PREFIX}{clean_chat}"
+        table_name = f"{CHAT_PREFIX}{chat}"
         
         try:
             response = self.client.describe_table(TableName=table_name)
             table_data = response['Table']
-            table_status = table_data['TableStatus']
+            
+            if table_data['TableStatus'] != 'ACTIVE':
+                return table_data['TableStatus']
 
-            if table_status != 'ACTIVE':
-                return table_status
-
-            gsi_list = table_data.get('GlobalSecondaryIndexes', [])
-            for gsi in gsi_list:
+            gsis = table_data.get('GlobalSecondaryIndexes', [])
+            for gsi in gsis:
                 if gsi['IndexStatus'] != 'ACTIVE':
-                    return "CREATING"
+                    return "CREATING" 
 
             return "ACTIVE"
-            
         except ClientError as e:
             if e.response['Error']['Code'] == 'ResourceNotFoundException':
-                return "NOT_FOUND"
-            raise e
+                return "CREATING"
+            raise
 
     async def check_table_status(self, chat: str) -> str:
         """Async wrapper to check if a table exists or is in progress"""
@@ -190,11 +186,16 @@ class DynamoDBClient:
     
 
     def _create_message_sync(self, message: ChatMessage, chat: str) -> ChatMessage:
-        """Create a message, ensuring the table is ready first"""
+        """Zapisuje wiadomość, wymuszając odświeżenie definicji tabeli"""
+        table_name = f"{CHAT_PREFIX}{chat}"
+        table = self.dynamodb.Table(table_name)
         item = message.to_dynamodb_item()
-        table = self.dynamodb.Table(f"{CHAT_PREFIX}{chat}")
-        table.put_item(Item=item)
-        return message
+        
+        try:
+            table.put_item(Item=item)
+            return message
+        except ClientError as e:
+            raise e
     
     async def create_message(self, message: ChatMessage, chat: str) -> ChatMessage:
         loop = asyncio.get_event_loop()
@@ -203,6 +204,7 @@ class DynamoDBClient:
 
     def _get_recent_messages_sync(self, chat: str, limit: int = 50) -> List[ChatMessage]:
         table_name = f"{CHAT_PREFIX}{chat}"
+
         try:
             self.client.describe_table(TableName=table_name)
             table = self.dynamodb.Table(table_name)

@@ -67,7 +67,7 @@ async def websocket_chat(websocket: WebSocket, chat: str):
     db = get_db()
     await manager.connect(websocket, chat)
 
-    chat_plain_name = chat.lstrip(CHAT_PREFIX)
+    chat_plain_name = chat.removeprefix(CHAT_PREFIX)
     
     try:
         token = await websocket.receive_text()

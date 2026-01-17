@@ -67,6 +67,9 @@ app.add_middleware(
 # Monitor session
 @app.middleware("http")
 async def monitor_session(request: Request, call_next):
+    if request.url.path.startswith("/api/ws") or request.url.path.startswith("/api/token"):
+        return await call_next(request)
+    
     response = await call_next(request)
 
     if not request.url.path.startswith("/api/token"):
