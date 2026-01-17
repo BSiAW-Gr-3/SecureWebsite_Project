@@ -10,7 +10,7 @@ from schemas.models import User, ChatMessage
 
 from config import (
     AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY,
-    DYNAMODB_ENDPOINT_URL, USERS_TABLE, CHAT_MESSAGES_TABLE
+    DYNAMODB_ENDPOINT_URL, USERS_TABLE, DEFAULT_CHAT_MESSAGES_TABLE, CHAT_PREFIX
 )
 
 class DynamoDBClient:
@@ -29,9 +29,8 @@ class DynamoDBClient:
         self.dynamodb = boto3.resource('dynamodb', **session_config)
         self.client = self.dynamodb.meta.client
         self.users_table = self.dynamodb.Table(USERS_TABLE)
-        self.messages_table = self.dynamodb.Table(CHAT_MESSAGES_TABLE)
     
-    def _create_tables_sync(self):
+    def _create_users_tables_sync(self):
         """Create DynamoDB tables if they don't exist (synchronous)"""
         # Create Users table
         try:
@@ -71,14 +70,20 @@ class DynamoDBClient:
                 waiter = self.client.get_waiter('table_exists')
                 waiter.wait(TableName=USERS_TABLE)
         
-        # Create ChatMessages table
+    async def create_users_tables(self):
+        """Create DynamoDB tables if they don't exist (async wrapper)"""
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, self._create_users_tables_sync)
+    
+    def _create_chat_tables(self, chat: str):
+        """Create a new chat messages table for a specific chat"""
         try:
-            self.client.describe_table(TableName=CHAT_MESSAGES_TABLE)
-            print(f"Table {CHAT_MESSAGES_TABLE} already exists")
+            self.client.describe_table(TableName=f"{CHAT_PREFIX}{chat}")
+            print(f"Table {chat} already exists")
         except ClientError as e:
             if e.response['Error']['Code'] == 'ResourceNotFoundException':
                 self.client.create_table(
-                    TableName=CHAT_MESSAGES_TABLE,
+                    TableName=f"{CHAT_PREFIX}{chat}",
                     KeySchema=[
                         {'AttributeName': 'message_id', 'KeyType': 'HASH'}
                     ],
@@ -105,16 +110,32 @@ class DynamoDBClient:
                         'WriteCapacityUnits': 5
                     }
                 )
-                print(f"Created table {CHAT_MESSAGES_TABLE}")
+                print(f"Created table {CHAT_PREFIX}{chat}")
                 # Wait for table to be active
                 waiter = self.client.get_waiter('table_exists')
-                waiter.wait(TableName=CHAT_MESSAGES_TABLE)
-    
-    async def create_tables(self):
-        """Create DynamoDB tables if they don't exist (async wrapper)"""
+                waiter.wait(TableName=f"{CHAT_PREFIX}{chat}")
+                
+    async def create_chat_tables(self, chat: str):
+        """Create chat messages tables for a specific chat (async wrapper)"""
         loop = asyncio.get_event_loop()
-        await loop.run_in_executor(None, self._create_tables_sync)
-    
+        await loop.run_in_executor(None, self._create_chat_tables, chat)
+
+    def _get_chat_tables(self) -> List[str]:
+        """Get list of existing chat message tables"""
+        try:
+            response = self.client.list_tables()
+            tables = response.get('TableNames', [])
+            chat_tables = [table for table in tables if table.startswith(CHAT_PREFIX)]
+            return chat_tables
+        except ClientError as e:
+            print(f"Error listing tables: {e}")
+            return []
+        
+    async def get_chat_tables(self) -> List[str]:
+        """Get list of existing chat message tables (async wrapper)"""
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, self._get_chat_tables)
+
     # User operations
     def _create_user_sync(self, user: User) -> User:
         """Create a new user (synchronous)"""
@@ -170,25 +191,29 @@ class DynamoDBClient:
         return await loop.run_in_executor(None, self._get_user_by_email_sync, email)
     
     # Chat message operations
-    def _create_message_sync(self, message: ChatMessage) -> ChatMessage:
+    def _create_message_sync(self, message: ChatMessage, chat: str) -> ChatMessage:
         """Create a new chat message (synchronous)"""
         item = message.to_dynamodb_item()
+        table = self.dynamodb.Table(f"{CHAT_PREFIX}{chat}")
+
         try:
-            self.messages_table.put_item(Item=item)
+            table.put_item(Item=item)
             return message
         except Exception as e:
             print(f"Error creating message: {e}")
             raise
     
-    async def create_message(self, message: ChatMessage) -> ChatMessage:
+    async def create_message(self, message: ChatMessage, chat: str) -> ChatMessage:
         """Create a new chat message"""
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, self._create_message_sync, message)
+        return await loop.run_in_executor(None, self._create_message_sync, message, chat)
     
-    def _get_recent_messages_sync(self, limit: int = 50) -> List[ChatMessage]:
+    def _get_recent_messages_sync(self, chat: str, limit: int = 50) -> List[ChatMessage]:
         """Get recent chat messages (synchronous)"""
+        table = self.dynamodb.Table(f"{CHAT_PREFIX}{chat}")
+
         try:
-            response = self.messages_table.scan(Limit=limit * 2)  # Get more to sort
+            response = table.scan(Limit=limit * 2)  # Get more to sort
             items = response['Items']
             
             # Sort by timestamp (descending)
@@ -203,10 +228,10 @@ class DynamoDBClient:
             print(f"Error getting recent messages: {e}")
             return []
     
-    async def get_recent_messages(self, limit: int = 50) -> List[ChatMessage]:
+    async def get_recent_messages(self, chat: str, limit: int = 50) -> List[ChatMessage]:
         """Get recent chat messages"""
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, self._get_recent_messages_sync, limit)
+        return await loop.run_in_executor(None, self._get_recent_messages_sync, chat, limit)
 
 # Global database client instance
 db_client: Optional[DynamoDBClient] = None
@@ -215,8 +240,9 @@ async def init_db():
     """Initialize database connection"""
     global db_client
     db_client = DynamoDBClient()
-    await db_client.create_tables()
-    print("Database initialized successfully")
+
+    await db_client.create_users_tables()
+    await db_client.create_chat_tables(DEFAULT_CHAT_MESSAGES_TABLE)
     return db_client
 
 def get_db() -> DynamoDBClient:

@@ -11,12 +11,13 @@ AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY", "")
 # DynamoDB Configuration
 DYNAMODB_ENDPOINT_URL = os.getenv("DYNAMODB_ENDPOINT_URL", None)  # For local DynamoDB
 USERS_TABLE = os.getenv("USERS_TABLE", "forum_users")
-CHAT_MESSAGES_TABLE = os.getenv("CHAT_MESSAGES_TABLE", "forum_chat_messages")
+DEFAULT_CHAT_MESSAGES_TABLE = os.getenv("CHAT_MESSAGES_TABLE", "main")
+CHAT_PREFIX = os.getenv("CHAT_PREFIX", "chat_")
 
 # CloudWatch Configuration
 CLOUDWATCH_ENDPOINT_URL = os.getenv("CLOUDWATCH_ENDPOINT_URL", None)
 CLOUDWATCH_LOG_GROUP = os.getenv("CLOUDWATCH_LOG_GROUP", "API-Logs")
-CLOUDWATCH_LOG_STREAM = os.getenv("CLOUDWATCH_LOG_STREAM", "API-Stream")
+CLOUDWATCH_LOG_STREAM = os.getenv("CLOUDWATCH_LOG_STREAM", "API-Access-Stream")
 
 # JWT Configuration
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")

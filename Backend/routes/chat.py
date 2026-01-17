@@ -1,28 +1,28 @@
 """
 Chat routes: message history and WebSocket real-time chat
 """
+from handlers.auth import get_current_active_user
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from jose import JWTError, jwt
 from typing import List
 
-from handlers.auth import get_current_active_user
 from schemas.schemas import ChatMessageResponse
-from schemas.models import User, ChatMessage
+from schemas.models import ChatMessage, User
 from handlers.websocket import manager
 from handlers.database import get_db
 
-from config import SECRET_KEY, ALGORITHM
+from config import SECRET_KEY, ALGORITHM, CHAT_PREFIX
 
 router = APIRouter()
 
-@router.get("/api/chat/history", response_model=List[ChatMessageResponse])
+@router.get("/api/chat/history/{chat}", response_model=List[ChatMessageResponse])
 async def get_chat_history(
+    chat: str,
     limit: int = 50,
-    current_user: User = Depends(get_current_active_user)
 ):
     """Get chat message history"""
     db = get_db()
-    messages = await db.get_recent_messages(limit)
+    messages = await db.get_recent_messages(chat, limit)
     
     return [
         ChatMessageResponse(
@@ -33,13 +33,31 @@ async def get_chat_history(
         for msg in messages
     ]
 
-@router.websocket("/api/ws/chat")
-async def websocket_chat(websocket: WebSocket):
+
+@router.get("/api/chat/list", response_model=List[str])
+async def get_chat_list(current_user: User = Depends(get_current_active_user)):
+    """Get list of available chats"""
+    db = get_db()
+    chats = await db.get_chat_tables()
+    return chats
+
+
+@router.post("/api/chat/create/{chat}")
+async def create_chat(chat: str, current_user: User = Depends(get_current_active_user)):
+    """Create a new chat room"""
+    db = get_db()
+    await db.create_chat_tables(chat)
+    return {"message": f"Chat '{chat}' created successfully."}
+
+
+@router.websocket("/api/ws/chat/{chat}")
+async def websocket_chat(websocket: WebSocket, chat: str):
     """WebSocket endpoint for real-time chat"""
     db = get_db()
-    await manager.connect(websocket)
+    await manager.connect(websocket, chat)
+
+    chat_plain_name = chat.lstrip(CHAT_PREFIX)
     
-    # Authenticate user
     try:
         token = await websocket.receive_text()
         try:
@@ -63,8 +81,7 @@ async def websocket_chat(websocket: WebSocket):
             "message": f"Welcome {username}! You are now connected to the chat."
         })
         
-        # Send recent chat history (last 50 messages)
-        recent_messages = await db.get_recent_messages(50)
+        recent_messages = await db.get_recent_messages(chat_plain_name, 50)
         
         if recent_messages:
             await websocket.send_json({
@@ -79,23 +96,20 @@ async def websocket_chat(websocket: WebSocket):
                 ]
             })
         
-        # Handle messages
         while True:
             data = await websocket.receive_text()
             
-            # Check for special commands
             if data.startswith("/"):
                 command_parts = data.split(maxsplit=1)
                 command = command_parts[0].lower()
                 
                 if command == "/history":
-                    # Get custom number of messages
                     limit = 50
                     if len(command_parts) > 1 and command_parts[1].isdigit():
                         limit = int(command_parts[1])
-                        limit = min(limit, 200)  # Max 200 messages
+                        limit = min(limit, 200) 
                     
-                    history_messages = await db.get_recent_messages(limit)
+                    history_messages = await db.get_recent_messages(chat_plain_name, limit)
                     
                     await websocket.send_json({
                         "type": "history",
@@ -119,7 +133,7 @@ async def websocket_chat(websocket: WebSocket):
             
             # Regular message - save and broadcast
             chat_message = ChatMessage(username=username, message=data)
-            await db.create_message(chat_message)
+            await db.create_message(chat_message, chat_plain_name)
             
             # Broadcast to all connected clients
             message_data = {
@@ -128,10 +142,10 @@ async def websocket_chat(websocket: WebSocket):
                 "message": data,
                 "timestamp": chat_message.timestamp.isoformat()
             }
-            await manager.broadcast(message_data)
+            await manager.broadcast(message_data, chat)
             
     except WebSocketDisconnect:
-        manager.disconnect(websocket)
+        manager.disconnect(websocket, chat)
     except Exception as e:
-        manager.disconnect(websocket)
+        manager.disconnect(websocket, chat)
         print(f"WebSocket error: {e}")

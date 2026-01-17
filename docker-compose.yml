@@ -39,7 +39,6 @@ services:
       SECRET_KEY: "a03143b0f89ae6552dd24a678729f3b70354b46e76a1599ef1f308e095da1069"
       DYNAMODB_ENDPOINT_URL: "http://dynamodb-local:8000"
       USERS_TABLE: "forum_users"
-      CHAT_MESSAGES_TABLE: "forum_chat_messages"
       CLOUDWATCH_ENDPOINT_URL: "http://localstack:4566"
       ACCESS_TOKEN_EXPIRE_MINUTES: 30
     ports:

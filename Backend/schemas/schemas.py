@@ -32,6 +32,7 @@ class TokenData(BaseModel):
     username: Optional[str] = None
 
 class ChatMessageCreate(BaseModel):
+    chat_name: str
     message: str
 
 class ChatMessageResponse(BaseModel):
