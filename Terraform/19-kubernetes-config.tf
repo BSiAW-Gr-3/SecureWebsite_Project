@@ -28,7 +28,7 @@ resource "kubernetes_config_map" "fastapi_config" {
 
     # DynamoDB Table Names
     "USERS_TABLE"         = "forum_users"
-    "CHAT_MESSAGES_TABLE" = "forum_chat_messages"
+    "CHAT_MESSAGES_TABLE" = "main"
 
     # JWT Configuration (non-sensitive parts)
     "ACCESS_TOKEN_EXPIRE_MINUTES" = "30"
