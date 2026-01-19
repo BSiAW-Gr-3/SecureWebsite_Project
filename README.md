@@ -1,6 +1,6 @@
 # 🚘 ryBMW Forum Application
 
-![Project Screenshot](assets/login_page.png)
+![Project Screenshot](.assets/login_page.png)
 
 This repository contains the source code and infrastructure definitions for a real-time chat application, built using FastAPI and React, and deployed to Amazon EKS.
 
